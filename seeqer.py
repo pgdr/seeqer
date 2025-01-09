@@ -11,6 +11,9 @@ BUTTON_HEIGHT = SCREEN_HEIGHT // 4
 
 TRACKS = ["kick", "snare", "hihat", "ride"]
 
+# Load sound tracks
+sounds = {track: pygame.mixer.Sound(f"{track}.flac") for track in TRACKS}
+
 GRID_ROWS = len(TRACKS)
 GRID_COLS = 16
 
@@ -24,7 +27,7 @@ pygame.display.set_caption("Drum sequencer")
 
 font = pygame.font.Font(None, 24)
 
-bpm = 85  # Beats per minute
+bpm = 240  # Beats per minute
 time_per_beat = 60 / bpm  # Time per beat in seconds
 current_beat = 0  # Current beat index
 last_time = pygame.time.get_ticks()  # Track time
@@ -48,9 +51,6 @@ def draw_buttons():
             color = HOVER_COLOR if is_hovered else BUTTON_COLOR
             if col == current_beat % GRID_COLS and row == current_beat // GRID_COLS:
                 color = HIGHLIGHT_COLOR  # Highlight the current button
-
-            if col == current_beat % GRID_COLS:
-                color = HIGHLIGHT_COLOR
 
             pygame.draw.rect(screen, color, button_rect)
             button_text = font.render(
@@ -82,7 +82,13 @@ def main():
         current_time = pygame.time.get_ticks()
         if (current_time - last_time) / 1000 >= time_per_beat:
             current_beat += 1
+            current_beat = current_beat % GRID_COLS
             last_time = current_time
+
+            # Play the sound for the current beat
+            for row in range(GRID_ROWS):
+                if buttons[(row, current_beat % GRID_COLS)]:
+                    sounds[TRACKS[row]].play()  # Play sound if button is active
 
         screen.fill((0, 0, 0))  # Clear the screen
         draw_buttons()  # Draw the buttons
