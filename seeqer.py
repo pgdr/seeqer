@@ -4,8 +4,8 @@ from collections import defaultdict
 
 pygame.init()
 
-SCREEN_WIDTH = 640
-SCREEN_HEIGHT = 320
+SCREEN_WIDTH = 840
+SCREEN_HEIGHT = 420
 BUTTON_WIDTH = SCREEN_WIDTH // 16
 BUTTON_HEIGHT = SCREEN_HEIGHT // 4
 
@@ -29,7 +29,7 @@ font = pygame.font.Font(None, 24)
 
 bpm = 240  # Beats per minute
 time_per_beat = 60 / bpm  # Time per beat in seconds
-current_beat = 0  # Current beat index
+current_beat = -1  # Current beat index
 last_time = pygame.time.get_ticks()  # Track time
 
 buttons = defaultdict(bool)
@@ -41,6 +41,12 @@ for col in range(GRID_COLS):
 
 
 def draw_buttons():
+    # Draw a red highlight rectangle for the current beat column
+    highlight_col = current_beat % GRID_COLS
+    highlight_rect = pygame.Rect(
+        highlight_col * BUTTON_WIDTH, 0, BUTTON_WIDTH, SCREEN_HEIGHT
+    )
+
     for row in range(GRID_ROWS):
         for col in range(GRID_COLS):
             button_rect = pygame.Rect(
@@ -55,13 +61,9 @@ def draw_buttons():
             else:
                 color = (0, 0, 0)  # Black for inactive buttons
 
-            if col == current_beat % GRID_COLS and row == current_beat // GRID_COLS:
-                color = HIGHLIGHT_COLOR  # Highlight the current button
-
             pygame.draw.rect(screen, color, button_rect)
-            button_text = font.render("", True, TEXT_COLOR)
-            text_rect = button_text.get_rect(center=button_rect.center)
-            screen.blit(button_text, text_rect)
+
+    pygame.draw.rect(screen, HIGHLIGHT_COLOR, highlight_rect, 3)  # Draw red outline
 
 
 def main():
