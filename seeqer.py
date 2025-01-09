@@ -33,10 +33,11 @@ current_beat = 0  # Current beat index
 last_time = pygame.time.get_ticks()  # Track time
 
 buttons = defaultdict(bool)
-
-
-def bool_to_text(b):
-    return "on" if b else "off"
+for col in range(GRID_COLS):
+    buttons[(0, col)] = not (col % 8)
+    buttons[(1, col)] = not ((4 + col) % 8)
+    buttons[(2, col)] = not (col % 2)
+    buttons[(3, col)] = col == 0
 
 
 def draw_buttons():
@@ -48,14 +49,17 @@ def draw_buttons():
             mouse_pos = pygame.mouse.get_pos()
             is_hovered = button_rect.collidepoint(mouse_pos)
 
-            color = HOVER_COLOR if is_hovered else BUTTON_COLOR
+            # Set button color based on its state
+            if buttons[(row, col)]:
+                color = (255, 255, 0)  # Yellow for active buttons
+            else:
+                color = (0, 0, 0)  # Black for inactive buttons
+
             if col == current_beat % GRID_COLS and row == current_beat // GRID_COLS:
                 color = HIGHLIGHT_COLOR  # Highlight the current button
 
             pygame.draw.rect(screen, color, button_rect)
-            button_text = font.render(
-                bool_to_text(buttons[(row, col)]), True, TEXT_COLOR
-            )
+            button_text = font.render("", True, TEXT_COLOR)
             text_rect = button_text.get_rect(center=button_rect.center)
             screen.blit(button_text, text_rect)
 
@@ -88,6 +92,7 @@ def main():
             # Play the sound for the current beat
             for row in range(GRID_ROWS):
                 if buttons[(row, current_beat % GRID_COLS)]:
+                    sounds[TRACKS[row]].stop()
                     sounds[TRACKS[row]].play()  # Play sound if button is active
 
         screen.fill((0, 0, 0))  # Clear the screen
