@@ -10,8 +10,6 @@ BUTTON_WIDTH = SCREEN_WIDTH // 16
 BUTTON_HEIGHT = SCREEN_HEIGHT // 4
 
 TRACKS = ["kick", "snare", "hihat", "ride"]
-
-# Load sound tracks
 sounds = {track: pygame.mixer.Sound(f"{track}.flac") for track in TRACKS}
 
 GRID_ROWS = len(TRACKS)
@@ -80,9 +78,25 @@ def main():
                     col = mouse_pos[0] // BUTTON_WIDTH
                     row = mouse_pos[1] // BUTTON_HEIGHT
                     if 0 <= col < GRID_COLS and 0 <= row < GRID_ROWS:
-                        buttons[(row, col)] = not buttons[
-                            (row, col)
-                        ]  # Toggle button state
+                        buttons[(row, col)] = not buttons[(row, col)]
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    buttons[(0, current_beat)] = not buttons[(0, current_beat)]
+                if event.key == pygame.K_2:
+                    buttons[(1, current_beat)] = not buttons[(1, current_beat)]
+                if event.key == pygame.K_3:
+                    buttons[(2, current_beat)] = not buttons[(2, current_beat)]
+                if event.key == pygame.K_4:
+                    buttons[(3, current_beat)] = not buttons[(3, current_beat)]
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_c:
+                        for row in range(GRID_ROWS):
+                            for col in range(GRID_COLS):
+                                buttons[(row, col)] = False
+                    if event.key == pygame.K_q:
+                        pygame.quit()
+                        sys.exit()
+
 
         # Check elapsed time to advance the current beat
         current_time = pygame.time.get_ticks()
