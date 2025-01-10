@@ -29,6 +29,7 @@ class Sound:
     fname: str
     sound: pygame.mixer.Sound
     slider = None
+    volume = 1
 
     def resample(self, _):
         scale = 2 ** (1 / 12)
@@ -37,6 +38,7 @@ class Sound:
         if value == 0:
             amount = 1
         self.sound = do_resample(self.fname, amount)
+        self.sound.set_volume(self.volume)
 
     def play(self):
         pygame.mixer.Channel(self.channel).play(self.sound)
@@ -46,6 +48,7 @@ class Sound:
 
     def set_volume(self, volume):
         self.sound.set_volume(volume)
+        self.volume = volume  # this is set to preserve volume when changing pitch
 
 
 sounds = [
@@ -142,6 +145,9 @@ def setup_grid():
             showvalue=False,
             command=lambda value, j=j: change_volume(int(value), j),
             width=10,
+            bg="black",
+            fg="red",
+            sliderrelief="flat",
         )
         slider.set(50)
         slider.pack(pady=0)
@@ -152,6 +158,9 @@ def setup_grid():
             showvalue=False,
             orient=tk.HORIZONTAL,
             width=10,
+            bg="black",
+            fg="red",
+            sliderrelief="flat",
         )
         pitch.set(0)
         pitch.pack(pady=0)
