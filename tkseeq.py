@@ -1,5 +1,6 @@
 from functools import cache
 from dataclasses import dataclass
+import json
 from samplerate import resample
 
 import tkinter as tk
@@ -7,7 +8,6 @@ import pygame
 
 pygame.mixer.init()
 
-import json
 
 with open("sounds.json", "r") as file:
     data = json.load(file)
