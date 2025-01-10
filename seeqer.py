@@ -163,6 +163,13 @@ def setup_grid():
 
 setup_grid()
 
+
+def quit_app(_):
+    root.destroy()
+
+
+root.bind("<KeyPress-q>", quit_app)
+
 timer = Timer()
 
 timer.increment()  # Start the counter
