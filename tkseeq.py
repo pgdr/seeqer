@@ -16,15 +16,20 @@ SOUNDS = [
     "tom3.flac",
     "tom4.flac",
     #
+    "am7.wav",
     "bass.wav",
+    "wetbass.wav",
     "blue.wav",
     "piano.wav",
     "ultra.wav",
 ]
 
+pygame.mixer.set_num_channels(len(SOUNDS) + 1)
+
 
 @dataclass
 class Sound:
+    channel: int
     fname: str
     sound: pygame.mixer.Sound
     slider = None
@@ -43,7 +48,7 @@ class Sound:
         del old
 
     def play(self):
-        self.sound.play()
+        pygame.mixer.Channel(self.channel).play(self.sound)
 
     def stop(self):
         self.sound.stop()
@@ -52,7 +57,9 @@ class Sound:
         self.sound.set_volume(volume)
 
 
-sounds = [Sound(fname, pygame.mixer.Sound(fname)) for fname in SOUNDS]
+sounds = [
+    Sound(idx, fname, pygame.mixer.Sound(fname)) for (idx, fname) in enumerate(SOUNDS)
+]
 
 
 WIDTH = 16
