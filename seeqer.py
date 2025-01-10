@@ -114,6 +114,15 @@ def change_volume(value, j):
     sounds[j].set_volume(value / 100)
 
 
+def fname_to_label(fname):
+    fname = fname.rstrip(".wav")
+    fname = fname.rstrip(".flac")
+    while "/" in fname:
+        idx = fname.find("/")
+        fname = fname[idx + 1 :]
+    return fname
+
+
 root = tk.Tk()
 root.title("Drum Machine")
 
@@ -123,7 +132,7 @@ def setup_grid():
     for j in range(HEIGHT):
         row = tk.Frame(root)  # Create a new frame for each row
         frame_left = tk.Frame(row)
-        label = tk.Label(frame_left, text=SOUNDS[j], width=10)
+        label = tk.Label(frame_left, text=fname_to_label(SOUNDS[j]), width=10)
         label.pack(pady=0)
         slider = tk.Scale(
             frame_left,
