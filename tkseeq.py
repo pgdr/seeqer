@@ -1,3 +1,4 @@
+from functools import cache
 from dataclasses import dataclass
 from samplerate import resample
 
@@ -6,25 +7,20 @@ import pygame
 
 pygame.mixer.init()
 
-SOUNDS = [
-    "kick.flac",
-    "snare.flac",
-    "hihat.flac",
-    "ride.flac",
-    "tom1.flac",
-    "tom2.flac",
-    "tom3.flac",
-    "tom4.flac",
-    #
-    "am7.wav",
-    "bass.wav",
-    "wetbass.wav",
-    "blue.wav",
-    "piano.wav",
-    "ultra.wav",
-]
+import json
+
+with open("sounds.json", "r") as file:
+    data = json.load(file)
+SOUNDS = data["sounds"]
 
 pygame.mixer.set_num_channels(len(SOUNDS) + 1)
+
+
+@cache
+def do_resample(fname, amount):
+    snd_array = pygame.sndarray.array(pygame.mixer.Sound(fname))
+    snd_resample = resample(snd_array, amount, "sinc_fastest").astype(snd_array.dtype)
+    return pygame.sndarray.make_sound(snd_resample)
 
 
 @dataclass
@@ -35,17 +31,12 @@ class Sound:
     slider = None
 
     def resample(self, _):
-        value = self.slider.get() / 100
-        print("resample", value)
-
-        snd_array = pygame.sndarray.array(pygame.mixer.Sound(self.fname))
-        snd_resample = resample(snd_array, value, "sinc_fastest").astype(
-            snd_array.dtype
-        )
-        old = self.sound
-        self.sound = pygame.sndarray.make_sound(snd_resample)
-        self.sound.play()
-        del old
+        scale = 2 ** (1 / 12)
+        value = self.slider.get()
+        amount = scale**value
+        if value == 0:
+            amount = 1
+        self.sound = do_resample(self.fname, amount)
 
     def play(self):
         pygame.mixer.Channel(self.channel).play(self.sound)
@@ -113,10 +104,10 @@ def on_button_click(i, j):
     if c.state:
         b.config(bg="yellow")
         b.config(text="on")
+        sounds[j].play()
     else:
         b.config(bg="black")
         b.config(text="off")
-    sounds[j].play()
 
 
 def change_volume(value, j):
@@ -144,9 +135,9 @@ def setup_grid():
         slider.set(80)
         slider.pack(side=tk.LEFT)
         pitch = tk.Scale(
-            frame_left, from_=0, to=200, showvalue=False, orient=tk.HORIZONTAL
+            frame_left, from_=-12, to=12, showvalue=False, orient=tk.HORIZONTAL
         )
-        pitch.set(100)
+        pitch.set(0)
         pitch.pack(side=tk.LEFT)
         the_sound = sounds[j]
         the_sound.slider = pitch
