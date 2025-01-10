@@ -121,9 +121,10 @@ root.title("Drum Machine")
 def setup_grid():
     # Create a grid of buttons
     for j in range(HEIGHT):
-        frame = tk.Frame(root)  # Create a new frame for each row
-        frame_left = tk.Frame(frame)
+        row = tk.Frame(root)  # Create a new frame for each row
+        frame_left = tk.Frame(row)
         label = tk.Label(frame_left, text=SOUNDS[j], width=10)
+        label.pack(pady=0)
         slider = tk.Scale(
             frame_left,
             from_=0,
@@ -131,23 +132,28 @@ def setup_grid():
             orient=tk.HORIZONTAL,
             showvalue=False,
             command=lambda value, j=j: change_volume(int(value), j),
+            width=10,
         )
-        slider.set(80)
-        slider.pack(side=tk.LEFT)
+        slider.set(50)
+        slider.pack(pady=0)
         pitch = tk.Scale(
-            frame_left, from_=-12, to=12, showvalue=False, orient=tk.HORIZONTAL
+            frame_left,
+            from_=-12,
+            to=12,
+            showvalue=False,
+            orient=tk.HORIZONTAL,
+            width=10,
         )
         pitch.set(0)
-        pitch.pack(side=tk.LEFT)
+        pitch.pack(pady=0)
         the_sound = sounds[j]
         the_sound.slider = pitch
         pitch.bind("<ButtonRelease-1>", the_sound.resample)
 
-        label.pack(side=tk.LEFT)
         frame_left.pack(side=tk.LEFT)
         for i in range(WIDTH):
             button = tk.Button(
-                frame,
+                row,
                 text="Off",
                 command=lambda i=i, j=j: on_button_click(i, j),
                 width=10,
@@ -155,7 +161,7 @@ def setup_grid():
             )
             BUTTONS[j][i] = button
             button.pack(side=tk.LEFT)  # Pack buttons to the left within the frame
-        frame.pack()  # Pack the frame into the root window
+        row.pack()  # Pack the row frame into the root window
     for j in range(HEIGHT):
         for i in range(WIDTH):
             update_button(i, j)
