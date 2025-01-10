@@ -32,7 +32,7 @@ class Sound:
 
     def resample(self, _):
         scale = 2 ** (1 / 12)
-        value = self.slider.get()
+        value = -self.slider.get()
         amount = scale**value
         if value == 0:
             amount = 1
