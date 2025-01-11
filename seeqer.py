@@ -95,10 +95,10 @@ def update_button(i, j):
     b = BUTTONS[j][i]
     if c.state:
         b.config(bg="yellow")
-        b.config(text="on")
+        b.config(text="")
     else:
         b.config(bg="black")
-        b.config(text="off")
+        b.config(text="")
 
 
 def on_button_click(i, j):
@@ -107,11 +107,11 @@ def on_button_click(i, j):
     c.state = not c.state
     if c.state:
         b.config(bg="yellow")
-        b.config(text="on")
+        b.config(text="")
         sounds[j].play()
     else:
         b.config(bg="black")
-        b.config(text="off")
+        b.config(text="")
 
 
 def change_volume(value, j):
@@ -146,8 +146,9 @@ def setup_grid():
             showvalue=False,
             command=lambda value, j=j: change_volume(int(value), j),
             width=10,
-            bg="black",
-            fg="red",
+            background="red",
+            troughcolor="black",
+            borderwidth=0,
             sliderrelief="flat",
         )
         slider.set(50)
@@ -159,8 +160,9 @@ def setup_grid():
             showvalue=False,
             orient=tk.HORIZONTAL,
             width=10,
-            bg="black",
-            fg="red",
+            background="red",
+            troughcolor="black",
+            borderwidth=0,
             sliderrelief="flat",
         )
         pitch.set(0)
@@ -173,9 +175,9 @@ def setup_grid():
         for i in range(WIDTH):
             button = tk.Button(
                 row,
-                text="Off",
+                text="",
                 command=lambda i=i, j=j: on_button_click(i, j),
-                width=10,
+                width=5,
                 height=2,
             )
             BUTTONS[j][i] = button
@@ -194,15 +196,12 @@ def load_file(_):
         d = defaultdict(bool)
         for idx, line in enumerate(fin):
             for jdx, c in enumerate(line.strip()):
-                print(idx, jdx, c)
                 d[jdx, idx] = int(c)
-    print(d)
     for j in range(HEIGHT):
         for i in range(WIDTH):
             GRID[j][i].state = d[i, j]
             if d[i, j]:
-                print("ACTIVATE", idx, jdx)
-            update_button(i, j)
+                update_button(i, j)
 
 
 def serialize(_):
