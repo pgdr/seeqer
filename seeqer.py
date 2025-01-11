@@ -3,7 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import json
 from samplerate import resample
-import threading
+from multiprocessing import Process
 
 import tkinter as tk
 import pygame
@@ -38,8 +38,8 @@ def _preprocess_sounds():
             print("done")
 
 
-_preprocessing_samples_thread = threading.Thread(target=_preprocess_sounds)
-_preprocessing_samples_thread.start()
+heavy_process = Process(target=_preprocess_sounds)
+heavy_process.start()
 
 
 @dataclass
