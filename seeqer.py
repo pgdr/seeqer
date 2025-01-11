@@ -3,6 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import json
 from samplerate import resample
+import threading
 
 import tkinter as tk
 import pygame
@@ -22,6 +23,23 @@ def do_resample(fname, amount):
     snd_array = pygame.sndarray.array(pygame.mixer.Sound(fname))
     snd_resample = resample(snd_array, amount, "sinc_fastest").astype(snd_array.dtype)
     return pygame.sndarray.make_sound(snd_resample)
+
+
+# preprocessing samples
+def _preprocess_sounds():
+    scale = 2 ** (1 / 12)
+    for fname in SOUNDS:
+        for value in range(-12, 13):
+            amount = scale**value
+            if value == 0:
+                amount = 1
+            print("processing", fname, value, end="...")
+            do_resample(fname, amount)
+            print("done")
+
+
+_preprocessing_samples_thread = threading.Thread(target=_preprocess_sounds)
+_preprocessing_samples_thread.start()
 
 
 @dataclass
