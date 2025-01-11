@@ -1,4 +1,5 @@
 from functools import cache
+from collections import defaultdict
 from dataclasses import dataclass
 import json
 from samplerate import resample
@@ -188,11 +189,38 @@ def setup_grid():
 setup_grid()
 
 
+def load_file(_):
+    with open(".seeqer_save.db", "r") as fin:
+        d = defaultdict(bool)
+        for idx, line in enumerate(fin):
+            for jdx, c in enumerate(line.strip()):
+                print(idx, jdx, c)
+                d[jdx, idx] = int(c)
+    print(d)
+    for j in range(HEIGHT):
+        for i in range(WIDTH):
+            GRID[j][i].state = d[i, j]
+            if d[i, j]:
+                print("ACTIVATE", idx, jdx)
+            update_button(i, j)
+
+
+def serialize(_):
+    with open(".seeqer_save.db", "w") as fout:
+        for j in range(HEIGHT):
+            for i in range(WIDTH):
+                c = GRID[j][i]
+                print(1 if c.state else 0, end="", file=fout)
+            print(file=fout)
+
+
 def quit_app(_):
     root.destroy()
 
 
 root.bind("<KeyPress-q>", quit_app)
+root.bind("<KeyPress-s>", serialize)
+root.bind("<KeyPress-l>", load_file)
 
 timer = Timer()
 
