@@ -84,6 +84,7 @@ class Timer:
     count: int = 0
 
     def increment(self):
+        root.after(500 // 4, self.increment)
         self.count += 1
         self.count = self.count % WIDTH
         for j in range(HEIGHT):
@@ -94,7 +95,6 @@ class Timer:
         for j in range(HEIGHT):
             BUTTONS[j][self.count - 1].config(highlightbackground="black")
             BUTTONS[j][self.count].config(highlightbackground="red")
-        root.after(500 // 4, self.increment)
 
 
 @dataclass
