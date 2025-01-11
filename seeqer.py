@@ -17,6 +17,8 @@ SOUNDS = data["sounds"]
 
 pygame.mixer.set_num_channels(len(SOUNDS) + 1)
 
+BPM = 120
+
 
 @cache
 def do_resample(fname, amount):
@@ -79,12 +81,17 @@ WIDTH = 16
 HEIGHT = len(SOUNDS)
 
 
+def change_bpm(bpm):
+    global BPM
+    BPM = bpm
+
+
 @dataclass
 class Timer:
     count: int = 0
 
     def increment(self):
-        root.after(500 // 4, self.increment)
+        root.after(60000 // (4 * BPM), self.increment)  # 4 beats per bar
         self.count += 1
         self.count = self.count % WIDTH
         for j in range(HEIGHT):
@@ -204,6 +211,28 @@ def setup_grid():
     for j in range(HEIGHT):
         for i in range(WIDTH):
             update_button(i, j)
+
+    # ADD GLOBAL PARAMS
+    row = tk.Frame(root)  # Create a new frame for each row
+    frame_left = tk.Frame(row)
+    label = tk.Label(frame_left, text="BPM", width=10)
+    label.pack(pady=0)
+    slider = tk.Scale(
+        frame_left,
+        from_=40,
+        to=240,
+        orient=tk.HORIZONTAL,
+        command=lambda value: change_bpm(int(value)),
+        width=10,
+        background="red",
+        troughcolor="black",
+        borderwidth=0,
+        sliderrelief="flat",
+    )
+    slider.set(120)
+    slider.pack(pady=0)
+    frame_left.pack()
+    row.pack()
 
 
 setup_grid()
