@@ -18,6 +18,7 @@ SOUNDS = data["sounds"]
 pygame.mixer.set_num_channels(len(SOUNDS) + 1)
 
 BPM = 120
+VOLUME = 100
 
 
 @cache
@@ -59,7 +60,7 @@ class Sound:
         if value == 0:
             amount = 1
         self.sound = do_resample(self.fname, amount)
-        self.sound.set_volume(self.volume)
+        self.sound.set_volume(self.volume * VOLUME / 100)
 
     def play(self):
         pygame.mixer.Channel(self.channel).play(self.sound)
@@ -67,9 +68,10 @@ class Sound:
     def stop(self):
         self.sound.stop()
 
-    def set_volume(self, volume):
-        self.sound.set_volume(volume)
-        self.volume = volume  # this is set to preserve volume when changing pitch
+    def set_volume(self, volume=None):
+        if volume is not None:
+            self.volume = volume  # this is set to preserve volume when changing pitch
+        self.sound.set_volume(self.volume * VOLUME / 100)
 
 
 sounds = [
@@ -84,6 +86,13 @@ HEIGHT = len(SOUNDS)
 def change_bpm(bpm):
     global BPM
     BPM = bpm
+
+
+def change_global_volume(volume):
+    global VOLUME
+    VOLUME = volume
+    for sound in sounds:
+        sound.set_volume()
 
 
 @dataclass
@@ -217,7 +226,7 @@ def setup_grid():
     frame_left = tk.Frame(row)
     label = tk.Label(frame_left, text="BPM", width=10)
     label.pack(pady=0)
-    slider = tk.Scale(
+    bpmslider = tk.Scale(
         frame_left,
         from_=40,
         to=240,
@@ -229,8 +238,26 @@ def setup_grid():
         borderwidth=0,
         sliderrelief="flat",
     )
-    slider.set(120)
-    slider.pack(pady=0)
+    bpmslider.set(120)
+    bpmslider.pack(pady=0)
+
+    vollabel = tk.Label(frame_left, text="volume", width=10)
+    vollabel.pack(pady=0)
+
+    volslider = tk.Scale(
+        frame_left,
+        from_=0,
+        to=120,
+        orient=tk.HORIZONTAL,
+        command=lambda value: change_global_volume(int(value)),
+        width=10,
+        background="red",
+        troughcolor="black",
+        borderwidth=0,
+        sliderrelief="flat",
+    )
+    volslider.set(100)
+    volslider.pack(pady=0)
     frame_left.pack()
     row.pack()
 
