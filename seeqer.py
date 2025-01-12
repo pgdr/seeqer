@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import json
 from samplerate import resample
 from multiprocessing import Process
-
+import random
 import tkinter as tk
 import pygame
 
@@ -68,6 +68,9 @@ class Sound:
     def stop(self):
         self.sound.stop()
 
+    def fadeout(self, ms):
+        self.sound.fadeout(ms)
+
     def set_volume(self, volume=None):
         if volume is not None:
             self.volume = volume  # this is set to preserve volume when changing pitch
@@ -95,19 +98,31 @@ def change_global_volume(volume):
         sound.set_volume()
 
 
+def do_play(sound):
+    # sound.stop()
+    sound.fadeout(5)
+    sound.play()
+
+
+def bpm_to_ms():
+    return 60000 // (4 * BPM)
+
+
 @dataclass
 class Timer:
     count: int = 0
 
     def increment(self):
-        root.after(60000 // (4 * BPM), self.increment)  # 4 beats per bar
+        root.after(bpm_to_ms(), self.increment)
         self.count += 1
         self.count = self.count % WIDTH
         for j in range(HEIGHT):
-            c = GRID[j][self.count]
+            c = GRID[j][(self.count + 2) % WIDTH]
             if c.state:
-                sounds[j].stop()
-                sounds[j].play()
+                mean = 0
+                std_dev = bpm_to_ms() / 20
+                eps = round(random.gauss(mean, std_dev))
+                root.after(bpm_to_ms() + eps, do_play, sounds[j])
         for j in range(HEIGHT):
             BUTTONS[j][self.count - 1].config(highlightbackground="black")
             BUTTONS[j][self.count].config(highlightbackground="red")
@@ -291,9 +306,17 @@ def quit_app(_):
     root.destroy()
 
 
+def clear(_):
+    for j in range(HEIGHT):
+        for i in range(WIDTH):
+            GRID[j][i].state = False
+            update_button(i, j)
+
+
 root.bind("<KeyPress-q>", quit_app)
 root.bind("<KeyPress-s>", serialize)
 root.bind("<KeyPress-l>", load_file)
+root.bind("<KeyPress-c>", clear)
 
 timer = Timer()
 
