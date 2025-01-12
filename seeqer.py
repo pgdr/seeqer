@@ -6,10 +6,10 @@ from samplerate import resample
 from multiprocessing import Process
 import random
 import tkinter as tk
+from tkinter import font
 import pygame
 
 pygame.mixer.init()
-
 
 with open("sounds.json", "r") as file:
     data = json.load(file)
@@ -124,8 +124,7 @@ class Timer:
         for j in range(HEIGHT):
             c = GRID[j][(self.count + 2) % WIDTH]
             if c.state:
-                eps = round(random.gauss(0, sounds[j].timing/10))
-                print(eps)
+                eps = round(random.gauss(0, sounds[j].timing / 10))
                 root.after(bpm_to_ms() + eps, do_play, sounds[j])
         for j in range(HEIGHT):
             BUTTONS[j][self.count - 1].config(highlightbackground="black")
@@ -182,6 +181,7 @@ def fname_to_label(fname):
 
 root = tk.Tk()
 root.title("Drum Machine")
+tiny_font = font.Font(size=6)
 
 
 def setup_grid():
@@ -191,14 +191,17 @@ def setup_grid():
         frame_left = tk.Frame(row)
         label = tk.Label(frame_left, text=fname_to_label(SOUNDS[j]), width=10)
         label.pack(pady=0)
+
+        frame_vol = tk.Frame(frame_left)
+        tk.Label(frame_vol, text="V", font=tiny_font).pack(side=tk.LEFT)
         slider = tk.Scale(
-            frame_left,
+            frame_vol,
             from_=0,
             to=100,
             orient=tk.HORIZONTAL,
             showvalue=False,
             command=lambda value, j=j: change_volume(int(value), j),
-            width=10,
+            width=5,
             background="red",
             troughcolor="black",
             borderwidth=0,
@@ -206,13 +209,17 @@ def setup_grid():
         )
         slider.set(50)
         slider.pack(pady=0)
+        frame_vol.pack()
+
+        frame_pitch = tk.Frame(frame_left)
+        tk.Label(frame_pitch, text="P", font=tiny_font).pack(side=tk.LEFT)
         pitch = tk.Scale(
-            frame_left,
+            frame_pitch,
             from_=-12,
             to=12,
             showvalue=False,
             orient=tk.HORIZONTAL,
-            width=10,
+            width=5,
             background="red",
             troughcolor="black",
             borderwidth=0,
@@ -223,14 +230,17 @@ def setup_grid():
         the_sound = sounds[j]
         the_sound.slider = pitch
         pitch.bind("<ButtonRelease-1>", the_sound.resample)
+        frame_pitch.pack()
 
+        frame_time = tk.Frame(frame_left)
+        tk.Label(frame_time, text="T", font=tiny_font).pack(side=tk.LEFT)
         timing = tk.Scale(
-            frame_left,
+            frame_time,
             from_=0,
             to=100,
             showvalue=False,
             orient=tk.HORIZONTAL,
-            width=10,
+            width=5,
             background="red",
             troughcolor="black",
             borderwidth=0,
@@ -240,6 +250,7 @@ def setup_grid():
         timing.pack(pady=0)
         the_sound.slider_timing = timing
         timing.bind("<ButtonRelease-1>", the_sound.update_timing)
+        frame_time.pack()
 
         frame_left.pack(side=tk.LEFT)
         for i in range(WIDTH):
