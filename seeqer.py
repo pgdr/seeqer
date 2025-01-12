@@ -51,7 +51,9 @@ class Sound:
     fname: str
     sound: pygame.mixer.Sound
     slider = None
+    slider_timing = None
     volume = 1
+    timing = 0  # randomized offset (stdev)
 
     def resample(self, _):
         scale = 2 ** (1 / 12)
@@ -61,6 +63,9 @@ class Sound:
             amount = 1
         self.sound = do_resample(self.fname, amount)
         self.sound.set_volume(self.volume * VOLUME / 100)
+
+    def update_timing(self, _):
+        self.timing = self.slider_timing.get()
 
     def play(self):
         pygame.mixer.Channel(self.channel).play(self.sound)
@@ -119,9 +124,8 @@ class Timer:
         for j in range(HEIGHT):
             c = GRID[j][(self.count + 2) % WIDTH]
             if c.state:
-                mean = 0
-                std_dev = bpm_to_ms() / 20
-                eps = round(random.gauss(mean, std_dev))
+                eps = round(random.gauss(0, sounds[j].timing/10))
+                print(eps)
                 root.after(bpm_to_ms() + eps, do_play, sounds[j])
         for j in range(HEIGHT):
             BUTTONS[j][self.count - 1].config(highlightbackground="black")
@@ -219,6 +223,23 @@ def setup_grid():
         the_sound = sounds[j]
         the_sound.slider = pitch
         pitch.bind("<ButtonRelease-1>", the_sound.resample)
+
+        timing = tk.Scale(
+            frame_left,
+            from_=0,
+            to=100,
+            showvalue=False,
+            orient=tk.HORIZONTAL,
+            width=10,
+            background="red",
+            troughcolor="black",
+            borderwidth=0,
+            sliderrelief="flat",
+        )
+        timing.set(0)
+        timing.pack(pady=0)
+        the_sound.slider_timing = timing
+        timing.bind("<ButtonRelease-1>", the_sound.update_timing)
 
         frame_left.pack(side=tk.LEFT)
         for i in range(WIDTH):
