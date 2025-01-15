@@ -17,6 +17,15 @@ samplerate
 
 # Usage
 
-Start with `python seeqer.py`
+Start with `python seeqer.py [WIDTH=16]`
 
-Save by pressing `s` and load by pressing `l`
+If you want something else than 4 measures, start with e.g. `python seeqer.py 32`
+
+## Keybindings
+
+* `s` save pattern
+* `l` load pattern
+* `c` clear pattern
+* `1` toggle instrument 1
+* `2` toggle instrument 2
+* ...
