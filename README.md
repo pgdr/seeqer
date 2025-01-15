@@ -1,8 +1,9 @@
 # seeqer
 
-A simple drum machine written in tkinter.
+A simple drum machine written in Python/tkinter.
 
-The instruments that are in this repo are from [Muldjordkit](https://drumgizmo.org/wiki/doku.php?id=kits:muldjordkit).
+1. The drumkit in this repo are from [Muldjordkit](https://drumgizmo.org/wiki/doku.php?id=kits:muldjordkit).
+2. The other sounds are from [Free Wave Samples](https://freewavesamples.com).
 
 
 # Install
