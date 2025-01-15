@@ -18,7 +18,9 @@ SOUNDS = data["sounds"]
 pygame.mixer.set_num_channels(len(SOUNDS) + 1)
 
 BPM = 120
+_GLOBAL_BPM_SLIDER = None
 VOLUME = 100
+_GLOBAL_VOLUME_SLIDER = None
 
 
 @cache
@@ -50,25 +52,46 @@ class Sound:
     channel: int
     fname: str
     sound: pygame.mixer.Sound
-    slider = None
-    slider_timing = None
-    volume = 1
-    timing = 0  # randomized offset (stdev)
+    pitch_slider = None
+    volume_ = 1
+    volume_slider = None
+    timing_ = 0  # randomized offset (stdev)
+    timing_slider = None
 
     def resample(self, _):
         scale = 2 ** (1 / 12)
-        value = -self.slider.get()
+        value = -self.pitch_slider.get()
         amount = scale**value
         if value == 0:
             amount = 1
         self.sound = do_resample(self.fname, amount)
         self.sound.set_volume(self.volume * VOLUME / 100)
 
+    @property
+    def timing(self):
+        return self.timing_
+
+    @timing.setter
+    def timing(self, value):
+        self.timing_ = value
+        if self.timing_slider.get() != value:
+            self.timing_slider.set(value)
+
     def update_timing(self, _):
-        self.timing = self.slider_timing.get()
+        self.timing = self.timing_slider.get()
 
     def play(self):
         pygame.mixer.Channel(self.channel).play(self.sound)
+
+    @property
+    def pitch(self):
+        return self.pitch_slider.get()
+
+    @pitch.setter
+    def pitch(self, value):
+        if self.pitch_slider:
+            self.pitch_slider.set(value)
+            self.resample(None)
 
     def stop(self):
         self.sound.stop()
@@ -76,10 +99,17 @@ class Sound:
     def fadeout(self, ms):
         self.sound.fadeout(ms)
 
-    def set_volume(self, volume=None):
-        if volume is not None:
-            self.volume = volume  # this is set to preserve volume when changing pitch
-        self.sound.set_volume(self.volume * VOLUME / 100)
+    @property
+    def volume(self):
+        return self.volume_
+
+    @volume.setter
+    def volume(self, vol=None):
+        if vol is not None:
+            self.volume_ = vol
+        self.sound.set_volume(self.volume_ * VOLUME / 100)
+        if self.volume_slider.get() != self.volume_:
+            self.volume_slider.set(self.volume_ * 100)
 
 
 sounds = [
@@ -93,14 +123,20 @@ HEIGHT = len(SOUNDS)
 
 def change_bpm(bpm):
     global BPM
+    global _GLOBAL_BPM_SLIDER
     BPM = bpm
+    if _GLOBAL_BPM_SLIDER.get() != bpm:
+        _GLOBAL_BPM_SLIDER.set(bpm)
 
 
 def change_global_volume(volume):
     global VOLUME
+    global _GLOBAL_VOLUM_SLIDER
     VOLUME = volume
     for sound in sounds:
-        sound.set_volume()
+        sound.volume = None
+    if _GLOBAL_VOLUME_SLIDER.get() != volume:
+        _GLOBAL_VOLUME_SLIDER.set(volume)
 
 
 def do_play(sound):
@@ -167,7 +203,7 @@ def on_button_click(i, j):
 
 
 def change_volume(value, j):
-    sounds[j].set_volume(value / 100)
+    sounds[j].volume = value / 100
 
 
 def fname_to_label(fname):
@@ -188,13 +224,14 @@ def setup_grid():
     # Create a grid of buttons
     for j in range(HEIGHT):
         row = tk.Frame(root)  # Create a new frame for each row
+        the_sound = sounds[j]
         frame_left = tk.Frame(row)
         label = tk.Label(frame_left, text=fname_to_label(SOUNDS[j]), width=10)
         label.pack(pady=0)
 
         frame_vol = tk.Frame(frame_left)
         tk.Label(frame_vol, text="V", font=tiny_font).pack(side=tk.LEFT)
-        slider = tk.Scale(
+        vol_slider = tk.Scale(
             frame_vol,
             from_=0,
             to=100,
@@ -207,9 +244,10 @@ def setup_grid():
             borderwidth=0,
             sliderrelief="flat",
         )
-        slider.set(50)
-        slider.pack(pady=0)
+        vol_slider.set(50)
+        vol_slider.pack(pady=0)
         frame_vol.pack()
+        the_sound.volume_slider = vol_slider
 
         frame_pitch = tk.Frame(frame_left)
         tk.Label(frame_pitch, text="P", font=tiny_font).pack(side=tk.LEFT)
@@ -227,8 +265,7 @@ def setup_grid():
         )
         pitch.set(0)
         pitch.pack(pady=0)
-        the_sound = sounds[j]
-        the_sound.slider = pitch
+        the_sound.pitch_slider = pitch
         pitch.bind("<ButtonRelease-1>", the_sound.resample)
         frame_pitch.pack()
 
@@ -248,7 +285,7 @@ def setup_grid():
         )
         timing.set(0)
         timing.pack(pady=0)
-        the_sound.slider_timing = timing
+        the_sound.timing_slider = timing
         timing.bind("<ButtonRelease-1>", the_sound.update_timing)
         frame_time.pack()
 
@@ -285,6 +322,8 @@ def setup_grid():
         borderwidth=0,
         sliderrelief="flat",
     )
+    global _GLOBAL_BPM_SLIDER
+    _GLOBAL_BPM_SLIDER = bpmslider
     bpmslider.set(120)
     bpmslider.pack(pady=0)
 
@@ -303,6 +342,8 @@ def setup_grid():
         borderwidth=0,
         sliderrelief="flat",
     )
+    global _GLOBAL_VOLUME_SLIDER
+    _GLOBAL_VOLUME_SLIDER = volslider
     volslider.set(100)
     volslider.pack(pady=0)
     frame_left.pack()
@@ -313,25 +354,36 @@ setup_grid()
 
 
 def load_file(_):
-    with open(".seeqer_save.db", "r") as fin:
-        d = defaultdict(bool)
-        for idx, line in enumerate(fin):
-            for jdx, c in enumerate(line.strip()):
-                d[jdx, idx] = int(c)
+    with open(".seeqer_save.json", "r") as fin:
+        d = json.load(fin)
+        change_global_volume(d["volume"])
+        change_bpm(d["bpm"])
+        for idx, sound in enumerate(sounds):
+            s = d["sounds"][sound.fname]
+            sound.timing = s["timing"]
+            sound.volume = s["volume"]
+            sound.pitch = s["pitch"]
     for j in range(HEIGHT):
+        sound = d["sounds"][sounds[j].fname]
         for i in range(WIDTH):
-            GRID[j][i].state = d[i, j]
-            if d[i, j]:
-                update_button(i, j)
+            GRID[j][i].state = sound["pattern"][i]
+            update_button(i, j)
+    root.update_idletasks()
 
 
 def serialize(_):
-    with open(".seeqer_save.db", "w") as fout:
-        for j in range(HEIGHT):
-            for i in range(WIDTH):
-                c = GRID[j][i]
-                print(1 if c.state else 0, end="", file=fout)
-            print(file=fout)
+    k = {}
+    for idx, sound in enumerate(sounds):
+        row = GRID[idx]
+        k[sound.fname] = {
+            "pattern": [c.state for c in row],
+            "timing": sound.timing,
+            "volume": sound.volume,
+            "pitch": sound.pitch,
+        }
+    data = {"sounds": k, "bpm": BPM, "volume": VOLUME}
+    with open(".seeqer_save.json", "w") as fout:
+        json.dump(data, fout)
 
 
 def quit_app(_):
