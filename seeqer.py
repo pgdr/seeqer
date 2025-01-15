@@ -11,8 +11,11 @@ import pygame
 
 pygame.mixer.init()
 
-with open("sounds.json", "r") as fin:
-    SOUNDS = [line.strip() for line in fin if line.strip()]
+try:
+    with open("sounds.txt", "r") as fin:
+        SOUNDS = [line.strip() for line in fin if line.strip()]
+except FileNotFoundError:
+    exit("sounds.txt must contain a list of sound files, one per line")
 
 pygame.mixer.set_num_channels(len(SOUNDS) + 1)
 
