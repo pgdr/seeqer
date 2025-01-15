@@ -406,7 +406,6 @@ def key_press(j):
 
     def toggle_button(_):
         i = TIMER.count
-        print("toggle button", j, "@", i)
         c = GRID[j][i]
         c.state = not c.state
         update_button(i, j)
