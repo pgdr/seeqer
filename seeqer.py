@@ -11,9 +11,8 @@ import pygame
 
 pygame.mixer.init()
 
-with open("sounds.json", "r") as file:
-    data = json.load(file)
-SOUNDS = data["sounds"]
+with open("sounds.json", "r") as fin:
+    SOUNDS = [line.strip() for line in fin if line.strip()]
 
 pygame.mixer.set_num_channels(len(SOUNDS) + 1)
 
@@ -117,7 +116,11 @@ sounds = [
 ]
 
 
+import sys
+
 WIDTH = 16
+if len(sys.argv) == 2:
+    WIDTH = int(sys.argv[1])
 HEIGHT = len(SOUNDS)
 
 
@@ -215,7 +218,8 @@ def fname_to_label(fname):
     while "/" in fname:
         idx = fname.find("/")
         fname = fname[idx + 1 :]
-    return fname
+    label = [e for e in fname if e.isalpha()]
+    return "".join(label)[:12]  # 12 ought to be enough
 
 
 root = tk.Tk()
@@ -298,7 +302,7 @@ def setup_grid():
                 row,
                 text="",
                 command=lambda i=i, j=j: on_button_click(i, j),
-                width=5,
+                width=3,
                 height=2,
             )
             BUTTONS[j][i] = button
@@ -369,7 +373,10 @@ def load_file(_):
     for j in range(HEIGHT):
         sound = d["sounds"][sounds[j].fname]
         for i in range(WIDTH):
-            GRID[j][i].state = sound["pattern"][i]
+            try:
+                GRID[j][i].state = sound["pattern"][i]
+            except IndexError:
+                GRID[j][i].state = False
             update_button(i, j)
     root.update_idletasks()
 
@@ -401,7 +408,6 @@ def clear(_):
 
 
 def key_press(j):
-    print("press", j)
     j = j - 1
 
     def toggle_button(_):
