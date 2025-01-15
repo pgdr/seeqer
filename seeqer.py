@@ -167,6 +167,9 @@ class Timer:
             BUTTONS[j][self.count].config(highlightbackground="red")
 
 
+TIMER = Timer()
+
+
 @dataclass
 class Cell:
     state: bool = False
@@ -397,12 +400,29 @@ def clear(_):
             update_button(i, j)
 
 
+def key_press(j):
+    print("press", j)
+    j = j - 1
+
+    def toggle_button(_):
+        i = TIMER.count
+        print("toggle button", j, "@", i)
+        c = GRID[j][i]
+        c.state = not c.state
+        update_button(i, j)
+
+    return toggle_button
+
+
 root.bind("<KeyPress-q>", quit_app)
 root.bind("<KeyPress-s>", serialize)
 root.bind("<KeyPress-l>", load_file)
 root.bind("<KeyPress-c>", clear)
 
-timer = Timer()
+for i in range(1, 10):
+    root.bind(f"<KeyPress-{i}>", key_press(i))
+root.bind(f"<KeyPress-{0}>", key_press(10))
 
-timer.increment()  # Start the counter
+
+TIMER.increment()  # Start the counter
 root.mainloop()
