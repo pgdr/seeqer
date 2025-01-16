@@ -24,6 +24,7 @@ If you want something else than 4 measures, start with e.g. `python seeqer.py 32
 
 ## Keybindings
 
+* `space` pause/start
 * `s` save pattern
 * `l` load pattern
 * `c` clear pattern

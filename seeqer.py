@@ -59,6 +59,8 @@ class Sound:
     volume_slider = None
     timing_ = 0  # randomized offset (stdev)
     timing_slider = None
+    envelope_start = 0
+    envelope_maxtime = None
 
     def resample(self, _):
         scale = 2 ** (1 / 12)
@@ -83,7 +85,11 @@ class Sound:
         self.timing = self.timing_slider.get()
 
     def play(self):
-        pygame.mixer.Channel(self.channel).play(self.sound)
+        if self.envelope_maxtime is None:
+            self.envelope_maxtime = round(self.sound.get_length() * 1000)
+        pygame.mixer.Channel(self.channel).play(
+            self.sound, maxtime=self.envelope_maxtime, fade_ms=self.envelope_start
+        )
 
     @property
     def pitch(self):
@@ -158,22 +164,40 @@ def bpm_to_ms():
 @dataclass
 class Timer:
     count: int = 0
+    run: bool = True
+
+    def _schedule(self, when, what, args=None):
+        if not self.run:
+            return
+        if args is None:  # TODO should use sentinel
+            root.after(when, what)
+            return
+        root.after(when, what, args)
+
+    def toggle(self):
+        self.run = not self.run
 
     def increment(self):
-        root.after(bpm_to_ms(), self.increment)
+        self._schedule(bpm_to_ms(), self.increment)
         self.count += 1
         self.count = self.count % WIDTH
         for j in range(HEIGHT):
             c = GRID[j][(self.count + 2) % WIDTH]
             if c.state:
                 eps = round(random.gauss(0, sounds[j].timing / 10))
-                root.after(bpm_to_ms() + eps, do_play, sounds[j])
+                self._schedule(bpm_to_ms() + eps, do_play, sounds[j])
         for j in range(HEIGHT):
             BUTTONS[j][self.count - 1].config(highlightbackground="black")
             BUTTONS[j][self.count].config(highlightbackground="red")
 
 
 TIMER = Timer()
+
+
+def toggle_run(_):
+    TIMER.toggle()
+    if TIMER.run:
+        TIMER.increment()
 
 
 @dataclass
@@ -426,6 +450,7 @@ root.bind("<KeyPress-q>", quit_app)
 root.bind("<KeyPress-s>", serialize)
 root.bind("<KeyPress-l>", load_file)
 root.bind("<KeyPress-c>", clear)
+root.bind("<KeyPress-space>", toggle_run)
 
 for i in range(1, 10):
     root.bind(f"<KeyPress-{i}>", key_press(i))
