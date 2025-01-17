@@ -50,6 +50,18 @@ class State:
                 do_resample(fname, amount)
                 print("done")
 
+    def change_bpm(self, bpm):
+        self.bpm = bpm
+        if self.global_bpm_slider.get() != bpm:
+            self.global_bpm_slider.set(bpm)
+
+    def change_global_volume(self, volume):
+        self.volume = volume
+        for sound in self.sounds:
+            sound.volume = None
+        if self.global_volume_slider.get() != volume:
+            self.global_volume_slider.set(volume)
+
 
 @cache
 def do_resample(fname, amount):
@@ -127,20 +139,6 @@ class Sound:
         self.sound.set_volume(self.volume_ * STATE.volume / 100)
         if self.volume_slider.get() != self.volume_:
             self.volume_slider.set(self.volume_ * 100)
-
-
-def change_bpm(bpm):
-    STATE.bpm = bpm
-    if STATE.global_bpm_slider.get() != bpm:
-        STATE.global_bpm_slider.set(bpm)
-
-
-def change_global_volume(volume):
-    STATE.volume = volume
-    for sound in STATE.sounds:
-        sound.volume = None
-    if STATE.global_volume_slider.get() != volume:
-        STATE.global_volume_slider.set(volume)
 
 
 def do_play(sound):
@@ -346,7 +344,7 @@ def setup_grid(state):
         from_=40,
         to=240,
         orient=tk.HORIZONTAL,
-        command=lambda value: change_bpm(int(value)),
+        command=lambda value: state.change_bpm(int(value)),
         width=10,
         background="red",
         troughcolor="black",
@@ -365,7 +363,7 @@ def setup_grid(state):
         from_=0,
         to=120,
         orient=tk.HORIZONTAL,
-        command=lambda value: change_global_volume(int(value)),
+        command=lambda value: state.change_global_volume(int(value)),
         width=10,
         background="red",
         troughcolor="black",
@@ -393,8 +391,8 @@ def setup_grid(state):
 def load_file(_):
     with open(".seeqer_save.json", "r") as fin:
         d = json.load(fin)
-        change_global_volume(d["volume"])
-        change_bpm(d["bpm"])
+        STATE.change_global_volume(d["volume"])
+        STATE.change_bpm(d["bpm"])
         for idx, sound in enumerate(STATE.sounds):
             s = d["sounds"][sound.fname]
             sound.timing = s["timing"]
@@ -413,21 +411,20 @@ def load_file(_):
 
 def serialize(_):
     k = {}
-    for idx, sound in enumerate(sounds):
-        row = GRID[idx]
+    for idx, sound in enumerate(STATE.sounds):
+        row = STATE.grid[idx]
         k[sound.fname] = {
             "pattern": [c.state for c in row],
             "timing": sound.timing,
             "volume": sound.volume,
             "pitch": sound.pitch,
         }
-    data = {"sounds": k, "bpm": BPM, "volume": VOLUME}
-    global PATTERN
-    if PATTERN == 1:
+    data = {"sounds": k, "bpm": STATE.bpm, "volume": STATE.volume}
+    if STATE.pattern == 1:
         with open(".seeqer_save.json", "w") as fout:
             json.dump(data, fout)
     else:
-        with open(f".seeqer_save.json{PATTERN}", "w") as fout:
+        with open(f".seeqer_save.json{STATE.pattern}", "w") as fout:
             json.dump(data, fout)
 
 
