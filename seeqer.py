@@ -62,6 +62,17 @@ class State:
         if self.global_volume_slider.get() != volume:
             self.global_volume_slider.set(volume)
 
+    def toggle_run(self, _):
+        self.timer.toggle()
+        if self.timer.run:
+            self.timer.increment()
+
+    def clear(self, _):
+        for j in range(self.height):
+            for i in range(self.width):
+                self.grid[j][i].state = False
+                update_button(i, j)
+
 
 @cache
 def do_resample(fname, amount):
@@ -179,12 +190,6 @@ class Timer:
         for j in range(STATE.height):
             STATE.buttons[j][self.count - 1].config(highlightbackground="black")
             STATE.buttons[j][self.count].config(highlightbackground="red")
-
-
-def toggle_run(_):
-    STATE.timer.toggle()
-    if STATE.timer.run:
-        STATE.timer.increment()
 
 
 @dataclass
@@ -432,13 +437,6 @@ def quit_app(_):
     STATE.root.destroy()
 
 
-def clear(_):
-    for j in range(STATE.height):
-        for i in range(STATE.width):
-            STATE.grid[j][i].state = False
-            update_button(i, j)
-
-
 def key_press(j):
     j = j - 1
 
@@ -485,8 +483,8 @@ def main():
     root.bind("<KeyPress-q>", quit_app)
     root.bind("<KeyPress-s>", serialize)
     root.bind("<KeyPress-l>", load_file)
-    root.bind("<KeyPress-c>", clear)
-    root.bind("<KeyPress-space>", toggle_run)
+    root.bind("<KeyPress-c>", state.clear)
+    root.bind("<KeyPress-space>", state.toggle_run)
 
     for i in range(1, 10):
         root.bind(f"<KeyPress-{i}>", key_press(i))
