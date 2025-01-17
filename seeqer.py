@@ -27,11 +27,13 @@ class State:
         self.grid = None
         self.buttons = None
         self.timer = None
+        self.sound_fnames = None
+        self.sounds = None
 
     def initiate_sounds(self, fname):
         try:
             with open(fname, "r") as fin:
-                self.SOUNDS = [line.strip() for line in fin if line.strip()]
+                self.sound_fnames = [line.strip() for line in fin if line.strip()]
         except FileNotFoundError:
             exit(f"{fname} must contain a list of sound files, one per line")
 
@@ -46,7 +48,7 @@ def do_resample(fname, amount):
 # preprocessing samples
 def _preprocess_sounds():
     scale = 2 ** (1 / 12)
-    for fname in STATE.SOUNDS:
+    for fname in STATE.sound_fnames:
         for value in range(-12, 13):
             amount = scale**value
             if value == 0:
@@ -251,7 +253,9 @@ def setup_grid(state):
         row = tk.Frame(state.root)  # Create a new frame for each row
         the_sound = state.sounds[j]
         frame_left = tk.Frame(row)
-        label = tk.Label(frame_left, text=fname_to_label(state.SOUNDS[j]), width=10)
+        label = tk.Label(
+            frame_left, text=fname_to_label(state.sound_fnames[j]), width=10
+        )
         label.pack(pady=0)
 
         tiny_font = font.Font(size=6)
@@ -456,10 +460,10 @@ def main():
     state.initiate_sounds("sounds.txt")
     global STATE
     STATE = state
-    pygame.mixer.set_num_channels(len(state.SOUNDS) + 1)
+    pygame.mixer.set_num_channels(len(state.sound_fnames) + 1)
     state.sounds = [
         Sound(idx, fname, pygame.mixer.Sound(fname))
-        for (idx, fname) in enumerate(state.SOUNDS)
+        for (idx, fname) in enumerate(state.sound_fnames)
     ]
 
     multiprocessing.set_start_method("fork")
@@ -469,7 +473,7 @@ def main():
     state.width = 16
     if len(sys.argv) == 2:
         state.width = int(sys.argv[1])
-    state.height = len(state.SOUNDS)
+    state.height = len(state.sound_fnames)
     state.timer = Timer()
     state.grid = [[Cell() for _ in range(state.width)] for _ in range(state.height)]
     state.buttons = [[None for _ in range(state.width)] for _ in range(state.height)]
