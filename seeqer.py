@@ -37,25 +37,25 @@ class State:
         except FileNotFoundError:
             exit(f"{fname} must contain a list of sound files, one per line")
 
+            # preprocessing samples
+
+    def preprocess_sounds(self):
+        scale = 2 ** (1 / 12)
+        for fname in self.sound_fnames:
+            for value in range(-12, 13):
+                amount = scale**value
+                if value == 0:
+                    amount = 1
+                print("processing", fname, value, end="...")
+                do_resample(fname, amount)
+                print("done")
+
 
 @cache
 def do_resample(fname, amount):
     snd_array = pygame.sndarray.array(pygame.mixer.Sound(fname))
     snd_resample = resample(snd_array, amount, "sinc_fastest").astype(snd_array.dtype)
     return pygame.sndarray.make_sound(snd_resample)
-
-
-# preprocessing samples
-def _preprocess_sounds():
-    scale = 2 ** (1 / 12)
-    for fname in STATE.sound_fnames:
-        for value in range(-12, 13):
-            amount = scale**value
-            if value == 0:
-                amount = 1
-            print("processing", fname, value, end="...")
-            do_resample(fname, amount)
-            print("done")
 
 
 @dataclass
@@ -467,7 +467,7 @@ def main():
     ]
 
     multiprocessing.set_start_method("fork")
-    state.heavy_process = multiprocessing.Process(target=_preprocess_sounds)
+    state.heavy_process = multiprocessing.Process(target=state.preprocess_sounds)
     state.heavy_process.start()
 
     state.width = 16
