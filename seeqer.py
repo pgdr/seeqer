@@ -16,11 +16,11 @@ GOD = None
 class God:
 
     def __init__(self):
-        self.BPM = 120
+        self.bpm = 120
         self.global_bpm_slider = None
-        self.VOLUME = 100
+        self.volume = 100
         self.global_volume_slider = None
-        self.PATTERN = 1
+        self.pattern = 1
         self.pattern_label = None
         self.height = 2
         self.width = 16
@@ -28,11 +28,12 @@ class God:
         self.buttons = None
         self.timer = None
 
+    def initiate_sounds(self, fname):
         try:
-            with open("sounds.txt", "r") as fin:
+            with open(fname, "r") as fin:
                 self.SOUNDS = [line.strip() for line in fin if line.strip()]
         except FileNotFoundError:
-            exit("sounds.txt must contain a list of sound files, one per line")
+            exit(f"{fname} must contain a list of sound files, one per line")
 
 
 @cache
@@ -75,7 +76,7 @@ class Sound:
         if value == 0:
             amount = 1
         self.sound = do_resample(self.fname, amount)
-        self.sound.set_volume(self.volume * GOD.VOLUME / 100)
+        self.sound.set_volume(self.volume * GOD.volume / 100)
 
     @property
     def timing(self):
@@ -121,19 +122,19 @@ class Sound:
     def volume(self, vol=None):
         if vol is not None:
             self.volume_ = vol
-        self.sound.set_volume(self.volume_ * GOD.VOLUME / 100)
+        self.sound.set_volume(self.volume_ * GOD.volume / 100)
         if self.volume_slider.get() != self.volume_:
             self.volume_slider.set(self.volume_ * 100)
 
 
 def change_bpm(bpm):
-    GOD.BPM = bpm
+    GOD.bpm = bpm
     if GOD.global_bpm_slider.get() != bpm:
         GOD.global_bpm_slider.set(bpm)
 
 
 def change_global_volume(volume):
-    GOD.VOLUME = volume
+    GOD.volume = volume
     for sound in GOD.sounds:
         sound.volume = None
     if GOD.global_volume_slider.get() != volume:
@@ -147,7 +148,7 @@ def do_play(sound):
 
 
 def bpm_to_ms():
-    return 60000 // (4 * GOD.BPM)
+    return 60000 // (4 * GOD.bpm)
 
 
 @dataclass
@@ -222,8 +223,8 @@ def change_volume(value, j):
 
 
 def pattern(shift):
-    GOD.PATTERN = max(GOD.PATTERN + shift, 1)
-    GOD.pattern_label.config(text=f"{GOD.PATTERN}")
+    GOD.pattern = max(GOD.pattern + shift, 1)
+    GOD.pattern_label.config(text=f"{GOD.pattern}")
 
 
 def pattern_left():
@@ -452,6 +453,7 @@ def key_press(j):
 def main():
     pygame.mixer.init()
     god = God()
+    god.initiate_sounds("sounds.txt")
     global GOD
     GOD = god
     pygame.mixer.set_num_channels(len(god.SOUNDS) + 1)
