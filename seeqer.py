@@ -1,28 +1,38 @@
+import sys
 from functools import cache
 from collections import defaultdict
 from dataclasses import dataclass
 import json
 from samplerate import resample
-from multiprocessing import Process
+import multiprocessing
 import random
 import tkinter as tk
 from tkinter import font
 import pygame
 
-pygame.mixer.init()
+GOD = None
 
-try:
-    with open("sounds.txt", "r") as fin:
-        SOUNDS = [line.strip() for line in fin if line.strip()]
-except FileNotFoundError:
-    exit("sounds.txt must contain a list of sound files, one per line")
 
-pygame.mixer.set_num_channels(len(SOUNDS) + 1)
+class God:
 
-BPM = 120
-_GLOBAL_BPM_SLIDER = None
-VOLUME = 100
-_GLOBAL_VOLUME_SLIDER = None
+    def __init__(self):
+        self.BPM = 120
+        self.global_bpm_slider = None
+        self.VOLUME = 100
+        self.global_volume_slider = None
+        self.PATTERN = 1
+        self.pattern_label = None
+        self.height = 2
+        self.width = 16
+        self.grid = None
+        self.buttons = None
+        self.timer = None
+
+        try:
+            with open("sounds.txt", "r") as fin:
+                self.SOUNDS = [line.strip() for line in fin if line.strip()]
+        except FileNotFoundError:
+            exit("sounds.txt must contain a list of sound files, one per line")
 
 
 @cache
@@ -35,7 +45,7 @@ def do_resample(fname, amount):
 # preprocessing samples
 def _preprocess_sounds():
     scale = 2 ** (1 / 12)
-    for fname in SOUNDS:
+    for fname in GOD.SOUNDS:
         for value in range(-12, 13):
             amount = scale**value
             if value == 0:
@@ -43,10 +53,6 @@ def _preprocess_sounds():
             print("processing", fname, value, end="...")
             do_resample(fname, amount)
             print("done")
-
-
-heavy_process = Process(target=_preprocess_sounds)
-heavy_process.start()
 
 
 @dataclass
@@ -69,7 +75,7 @@ class Sound:
         if value == 0:
             amount = 1
         self.sound = do_resample(self.fname, amount)
-        self.sound.set_volume(self.volume * VOLUME / 100)
+        self.sound.set_volume(self.volume * GOD.VOLUME / 100)
 
     @property
     def timing(self):
@@ -115,40 +121,23 @@ class Sound:
     def volume(self, vol=None):
         if vol is not None:
             self.volume_ = vol
-        self.sound.set_volume(self.volume_ * VOLUME / 100)
+        self.sound.set_volume(self.volume_ * GOD.VOLUME / 100)
         if self.volume_slider.get() != self.volume_:
             self.volume_slider.set(self.volume_ * 100)
 
 
-sounds = [
-    Sound(idx, fname, pygame.mixer.Sound(fname)) for (idx, fname) in enumerate(SOUNDS)
-]
-
-
-import sys
-
-WIDTH = 16
-if len(sys.argv) == 2:
-    WIDTH = int(sys.argv[1])
-HEIGHT = len(SOUNDS)
-
-
 def change_bpm(bpm):
-    global BPM
-    global _GLOBAL_BPM_SLIDER
-    BPM = bpm
-    if _GLOBAL_BPM_SLIDER.get() != bpm:
-        _GLOBAL_BPM_SLIDER.set(bpm)
+    GOD.BPM = bpm
+    if GOD.global_bpm_slider.get() != bpm:
+        GOD.global_bpm_slider.set(bpm)
 
 
 def change_global_volume(volume):
-    global VOLUME
-    global _GLOBAL_VOLUM_SLIDER
-    VOLUME = volume
-    for sound in sounds:
+    GOD.VOLUME = volume
+    for sound in GOD.sounds:
         sound.volume = None
-    if _GLOBAL_VOLUME_SLIDER.get() != volume:
-        _GLOBAL_VOLUME_SLIDER.set(volume)
+    if GOD.global_volume_slider.get() != volume:
+        GOD.global_volume_slider.set(volume)
 
 
 def do_play(sound):
@@ -158,7 +147,7 @@ def do_play(sound):
 
 
 def bpm_to_ms():
-    return 60000 // (4 * BPM)
+    return 60000 // (4 * GOD.BPM)
 
 
 @dataclass
@@ -170,9 +159,9 @@ class Timer:
         if not self.run:
             return
         if args is None:  # TODO should use sentinel
-            root.after(when, what)
+            GOD.root.after(when, what)
             return
-        root.after(when, what, args)
+        GOD.root.after(when, what, args)
 
     def toggle(self):
         self.run = not self.run
@@ -180,24 +169,21 @@ class Timer:
     def increment(self):
         self._schedule(bpm_to_ms(), self.increment)
         self.count += 1
-        self.count = self.count % WIDTH
-        for j in range(HEIGHT):
-            c = GRID[j][(self.count + 2) % WIDTH]
+        self.count = self.count % GOD.width
+        for j in range(GOD.height):
+            c = GOD.grid[j][(self.count + 2) % GOD.width]
             if c.state:
-                eps = round(random.gauss(0, sounds[j].timing / 10))
-                self._schedule(bpm_to_ms() + eps, do_play, sounds[j])
-        for j in range(HEIGHT):
-            BUTTONS[j][self.count - 1].config(highlightbackground="black")
-            BUTTONS[j][self.count].config(highlightbackground="red")
-
-
-TIMER = Timer()
+                eps = round(random.gauss(0, GOD.sounds[j].timing / 8))
+                self._schedule(bpm_to_ms() + eps, do_play, GOD.sounds[j])
+        for j in range(GOD.height):
+            GOD.buttons[j][self.count - 1].config(highlightbackground="black")
+            GOD.buttons[j][self.count].config(highlightbackground="red")
 
 
 def toggle_run(_):
-    TIMER.toggle()
-    if TIMER.run:
-        TIMER.increment()
+    GOD.timer.toggle()
+    if GOD.timer.run:
+        GOD.timer.increment()
 
 
 @dataclass
@@ -207,13 +193,9 @@ class Cell:
     shift: float = 0
 
 
-GRID = [[Cell() for _ in range(WIDTH)] for _ in range(HEIGHT)]
-BUTTONS = [[None for _ in range(WIDTH)] for _ in range(HEIGHT)]
-
-
 def update_button(i, j):
-    c = GRID[j][i]
-    b = BUTTONS[j][i]
+    c = GOD.grid[j][i]
+    b = GOD.buttons[j][i]
     if c.state:
         b.config(bg="yellow")
         b.config(text="")
@@ -223,20 +205,33 @@ def update_button(i, j):
 
 
 def on_button_click(i, j):
-    c = GRID[j][i]
-    b = BUTTONS[j][i]
+    c = GOD.grid[j][i]
+    b = GOD.buttons[j][i]
     c.state = not c.state
     if c.state:
         b.config(bg="yellow")
         b.config(text="")
-        sounds[j].play()
+        GOD.sounds[j].play()
     else:
         b.config(bg="black")
         b.config(text="")
 
 
 def change_volume(value, j):
-    sounds[j].volume = value / 100
+    GOD.sounds[j].volume = value / 100
+
+
+def pattern(shift):
+    GOD.PATTERN = max(GOD.PATTERN + shift, 1)
+    GOD.pattern_label.config(text=f"{GOD.PATTERN}")
+
+
+def pattern_left():
+    pattern(-1)
+
+
+def pattern_right():
+    pattern(1)
 
 
 def fname_to_label(fname):
@@ -249,19 +244,16 @@ def fname_to_label(fname):
     return "".join(label)[:12]  # 12 ought to be enough
 
 
-root = tk.Tk()
-root.title("Drum Machine")
-tiny_font = font.Font(size=6)
-
-
-def setup_grid():
+def setup_grid(god):
     # Create a grid of buttons
-    for j in range(HEIGHT):
-        row = tk.Frame(root)  # Create a new frame for each row
-        the_sound = sounds[j]
+    for j in range(god.height):
+        row = tk.Frame(god.root)  # Create a new frame for each row
+        the_sound = god.sounds[j]
         frame_left = tk.Frame(row)
-        label = tk.Label(frame_left, text=fname_to_label(SOUNDS[j]), width=10)
+        label = tk.Label(frame_left, text=fname_to_label(god.SOUNDS[j]), width=10)
         label.pack(pady=0)
+
+        tiny_font = font.Font(size=6)
 
         frame_vol = tk.Frame(frame_left)
         tk.Label(frame_vol, text="V", font=tiny_font).pack(side=tk.LEFT)
@@ -324,7 +316,7 @@ def setup_grid():
         frame_time.pack()
 
         frame_left.pack(side=tk.LEFT)
-        for i in range(WIDTH):
+        for i in range(god.width):
             button = tk.Button(
                 row,
                 text="",
@@ -332,15 +324,15 @@ def setup_grid():
                 width=3,
                 height=2,
             )
-            BUTTONS[j][i] = button
+            god.buttons[j][i] = button
             button.pack(side=tk.LEFT)  # Pack buttons to the left within the frame
         row.pack()  # Pack the row frame into the root window
-    for j in range(HEIGHT):
-        for i in range(WIDTH):
+    for j in range(god.height):
+        for i in range(god.width):
             update_button(i, j)
 
     # ADD GLOBAL PARAMS
-    row = tk.Frame(root)  # Create a new frame for each row
+    row = tk.Frame(god.root)  # Create a new frame for each row
     frame_left = tk.Frame(row)
     label = tk.Label(frame_left, text="BPM", width=10)
     label.pack(pady=0)
@@ -356,8 +348,7 @@ def setup_grid():
         borderwidth=0,
         sliderrelief="flat",
     )
-    global _GLOBAL_BPM_SLIDER
-    _GLOBAL_BPM_SLIDER = bpmslider
+    god.global_bpm_slider = bpmslider
     bpmslider.set(120)
     bpmslider.pack(pady=0)
 
@@ -376,15 +367,22 @@ def setup_grid():
         borderwidth=0,
         sliderrelief="flat",
     )
-    global _GLOBAL_VOLUME_SLIDER
-    _GLOBAL_VOLUME_SLIDER = volslider
+    god.global_volume_slider = volslider
     volslider.set(100)
     volslider.pack(pady=0)
+
+    left_arrow = tk.Button(frame_left, text="←", command=pattern_left)
+    left_arrow.pack(side=tk.LEFT)
+
+    pattern_label = tk.Label(frame_left, text="1", width=1, font=("Arial", 14))
+    pattern_label.pack(side=tk.LEFT, padx=5)
+    god.pattern_label = pattern_label
+
+    right_arrow = tk.Button(frame_left, text="→", command=pattern_right)
+    right_arrow.pack(side=tk.LEFT)
+
     frame_left.pack()
     row.pack()
-
-
-setup_grid()
 
 
 def load_file(_):
@@ -392,20 +390,20 @@ def load_file(_):
         d = json.load(fin)
         change_global_volume(d["volume"])
         change_bpm(d["bpm"])
-        for idx, sound in enumerate(sounds):
+        for idx, sound in enumerate(GOD.sounds):
             s = d["sounds"][sound.fname]
             sound.timing = s["timing"]
             sound.volume = s["volume"]
             sound.pitch = s["pitch"]
-    for j in range(HEIGHT):
-        sound = d["sounds"][sounds[j].fname]
-        for i in range(WIDTH):
+    for j in range(GOD.height):
+        sound = d["sounds"][GOD.sounds[j].fname]
+        for i in range(GOD.width):
             try:
-                GRID[j][i].state = sound["pattern"][i]
+                GOD.grid[j][i].state = sound["pattern"][i]
             except IndexError:
-                GRID[j][i].state = False
+                GOD.grid[j][i].state = False
             update_button(i, j)
-    root.update_idletasks()
+    GOD.root.update_idletasks()
 
 
 def serialize(_):
@@ -419,18 +417,23 @@ def serialize(_):
             "pitch": sound.pitch,
         }
     data = {"sounds": k, "bpm": BPM, "volume": VOLUME}
-    with open(".seeqer_save.json", "w") as fout:
-        json.dump(data, fout)
+    global PATTERN
+    if PATTERN == 1:
+        with open(".seeqer_save.json", "w") as fout:
+            json.dump(data, fout)
+    else:
+        with open(f".seeqer_save.json{PATTERN}", "w") as fout:
+            json.dump(data, fout)
 
 
 def quit_app(_):
-    root.destroy()
+    GOD.root.destroy()
 
 
 def clear(_):
-    for j in range(HEIGHT):
-        for i in range(WIDTH):
-            GRID[j][i].state = False
+    for j in range(GOD.height):
+        for i in range(GOD.width):
+            GOD.grid[j][i].state = False
             update_button(i, j)
 
 
@@ -438,24 +441,57 @@ def key_press(j):
     j = j - 1
 
     def toggle_button(_):
-        i = TIMER.count
-        c = GRID[j][i]
+        i = GOD.timer.count
+        c = GOD.grid[j][i]
         c.state = not c.state
         update_button(i, j)
 
     return toggle_button
 
 
-root.bind("<KeyPress-q>", quit_app)
-root.bind("<KeyPress-s>", serialize)
-root.bind("<KeyPress-l>", load_file)
-root.bind("<KeyPress-c>", clear)
-root.bind("<KeyPress-space>", toggle_run)
+def main():
+    pygame.mixer.init()
+    god = God()
+    global GOD
+    GOD = god
+    pygame.mixer.set_num_channels(len(god.SOUNDS) + 1)
+    god.sounds = [
+        Sound(idx, fname, pygame.mixer.Sound(fname))
+        for (idx, fname) in enumerate(god.SOUNDS)
+    ]
 
-for i in range(1, 10):
-    root.bind(f"<KeyPress-{i}>", key_press(i))
-root.bind(f"<KeyPress-{0}>", key_press(10))
+    multiprocessing.set_start_method("fork")
+    god.heavy_process = multiprocessing.Process(target=_preprocess_sounds)
+    god.heavy_process.start()
+
+    god.width = 16
+    if len(sys.argv) == 2:
+        god.width = int(sys.argv[1])
+    god.height = len(god.SOUNDS)
+    god.timer = Timer()
+    god.grid = [[Cell() for _ in range(god.width)] for _ in range(god.height)]
+    god.buttons = [[None for _ in range(god.width)] for _ in range(god.height)]
+
+    root = tk.Tk()
+    root.title("Drum Machine")
+
+    god.root = root
+
+    setup_grid(god)
+
+    root.bind("<KeyPress-q>", quit_app)
+    root.bind("<KeyPress-s>", serialize)
+    root.bind("<KeyPress-l>", load_file)
+    root.bind("<KeyPress-c>", clear)
+    root.bind("<KeyPress-space>", toggle_run)
+
+    for i in range(1, 10):
+        root.bind(f"<KeyPress-{i}>", key_press(i))
+    root.bind(f"<KeyPress-{0}>", key_press(10))
+
+    god.timer.increment()  # Start the counter
+    root.mainloop()
 
 
-TIMER.increment()  # Start the counter
-root.mainloop()
+if __name__ == "__main__":
+    main()
